@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Forgery Detection Dashboard</title>
+    <meta name="description" content="Detect forged/deepfake audio using CNN-LSTM and GFCC+XGBoost ensemble models. Upload, record, or select dataset samples for analysis." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p class="loading-text">Analyzing audio…</p>
+        </div>
+    </div>
+
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <div class="nav-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </div>
+            <div class="nav-titles">
+                <h1 class="nav-title">Audio Forgery Detection Dashboard</h1>
+                <p class="nav-subtitle">CNN+LSTM Deep Model &amp; GFCC+XGBoost Traditional Baseline — In the Wild Dataset</p>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="viz-nav-btn" id="openVizBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/><polyline points="6 6 6 6.01"/></svg>
+                Data Visualization
+            </button>
+            <div class="api-badge">
+                <span class="api-dot"></span>
+                <span>Models Loaded (CPU)</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══ DATA VISUALIZATION PAGE (overlay) ══ -->
+    <div id="vizPage" class="viz-page" style="display:none;">
+        <div class="viz-page-header">
+            <div class="viz-page-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                <span>Model Performance &amp; Data Visualization</span>
+            </div>
+            <button class="viz-close-btn" id="closeVizBtn" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Close
+            </button>
+        </div>
+
+        <div class="viz-body">
+
+            <!-- Summary stat cards -->
+            <div class="viz-stat-row">
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon xgb-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div>
+                        <div class="viz-stat-label">XGBoost Accuracy</div>
+                        <div class="viz-stat-value">93.5%</div>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon cnn-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div>
+                        <div class="viz-stat-label">CNN‑LSTM Accuracy</div>
+                        <div class="viz-stat-value">60.0%</div>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon green-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div>
+                        <div class="viz-stat-label">XGBoost True Positive Rate</div>
+                        <div class="viz-stat-value">92.0%</div>
+                    </div>
+                </div>
+                <div class="viz-stat-card">
+                    <div class="viz-stat-icon red-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div>
+                        <div class="viz-stat-label">CNN‑LSTM False Negative Rate</div>
+                        <div class="viz-stat-value">61.0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two confusion matrices -->
+            <div class="viz-matrices-row">
+                <!-- XGBoost -->
+                <div class="viz-matrix-card">
+                    <div class="viz-matrix-header">
+                        <div class="viz-matrix-title">
+                            <span class="viz-model-tag xgb">XGBoost</span>
+                            GFCC + XGBoost — Confusion Matrix
+                        </div>
+                        <div class="viz-matrix-badge good">Strong</div>
+                    </div>
+                    <div class="viz-matrix-img-wrap">
+                        <img src="{{ url_for('static', filename='confusion_xgboost.png') }}" alt="XGBoost Confusion Matrix" />
+                    </div>
+                    <div class="viz-matrix-stats">
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">True Genuine (TN)</span>
+                            <span class="viz-ms-val green">95</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">False Fake (FP)</span>
+                            <span class="viz-ms-val red">5</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">False Genuine (FN)</span>
+                            <span class="viz-ms-val red">8</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">True Fake (TP)</span>
+                            <span class="viz-ms-val green">92</span>
+                        </div>
+                    </div>
+                    <div class="viz-perf-bars">
+                        <div class="viz-bar-row"><span>Accuracy</span><div class="viz-bar-track"><div class="viz-bar-fill" style="width:93.5%"></div></div><span>93.5%</span></div>
+                        <div class="viz-bar-row"><span>Precision</span><div class="viz-bar-track"><div class="viz-bar-fill" style="width:94.8%"></div></div><span>94.8%</span></div>
+                        <div class="viz-bar-row"><span>Recall</span><div class="viz-bar-track"><div class="viz-bar-fill" style="width:92.0%"></div></div><span>92.0%</span></div>
+                        <div class="viz-bar-row"><span>F1 Score</span><div class="viz-bar-track"><div class="viz-bar-fill" style="width:93.4%"></div></div><span>93.4%</span></div>
+                    </div>
+                </div>
+
+                <!-- CNN-LSTM -->
+                <div class="viz-matrix-card">
+                    <div class="viz-matrix-header">
+                        <div class="viz-matrix-title">
+                            <span class="viz-model-tag cnn">CNN‑LSTM</span>
+                            CNN + LSTM — Confusion Matrix
+                        </div>
+                        <div class="viz-matrix-badge weak">Needs Work</div>
+                    </div>
+                    <div class="viz-matrix-img-wrap">
+                        <img src="{{ url_for('static', filename='confusion_cnn_lstm.png') }}" alt="CNN-LSTM Confusion Matrix" />
+                    </div>
+                    <div class="viz-matrix-stats">
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">True Genuine (TN)</span>
+                            <span class="viz-ms-val green">81</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">False Fake (FP)</span>
+                            <span class="viz-ms-val red">19</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">False Genuine (FN)</span>
+                            <span class="viz-ms-val red">61</span>
+                        </div>
+                        <div class="viz-ms-item">
+                            <span class="viz-ms-label">True Fake (TP)</span>
+                            <span class="viz-ms-val green">39</span>
+                        </div>
+                    </div>
+                    <div class="viz-perf-bars">
+                        <div class="viz-bar-row"><span>Accuracy</span><div class="viz-bar-track"><div class="viz-bar-fill cnn-fill" style="width:60.0%"></div></div><span>60.0%</span></div>
+                        <div class="viz-bar-row"><span>Precision</span><div class="viz-bar-track"><div class="viz-bar-fill cnn-fill" style="width:67.2%"></div></div><span>67.2%</span></div>
+                        <div class="viz-bar-row"><span>Recall</span><div class="viz-bar-track"><div class="viz-bar-fill cnn-fill" style="width:39.0%"></div></div><span>39.0%</span></div>
+                        <div class="viz-bar-row"><span>F1 Score</span><div class="viz-bar-track"><div class="viz-bar-fill cnn-fill" style="width:49.4%"></div></div><span>49.4%</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side-by-side bar comparison -->
+            <div class="viz-compare-card">
+                <div class="viz-compare-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Head-to-Head Metric Comparison
+                </div>
+                <div class="viz-compare-legend">
+                    <span class="viz-legend-dot xgb-dot"></span><span>GFCC + XGBoost</span>
+                    <span class="viz-legend-dot cnn-dot"></span><span>CNN + LSTM</span>
+                </div>
+                <div class="viz-compare-bars" id="compareChart">
+                    <!-- Rendered by JS below in viz page script -->
+                </div>
+            </div>
+
+            <!-- Dataset info card -->
+            <div class="viz-info-card">
+                <div class="viz-info-title">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Dataset &amp; Training Info — Release in the Wild
+                </div>
+                <div class="viz-info-grid">
+                    <div class="viz-info-item"><span class="viz-info-label">Dataset</span><span class="viz-info-val">Release in the Wild</span></div>
+                    <div class="viz-info-item"><span class="viz-info-label">XGBoost Features</span><span class="viz-info-val">GFCC (Gammatone Cepstral Coefficients)</span></div>
+                    <div class="viz-info-item"><span class="viz-info-label">CNN‑LSTM Features</span><span class="viz-info-val">Mel-Spectrogram (128 bins × 300 frames)</span></div>
+                    <div class="viz-info-item"><span class="viz-info-label">Label Convention</span><span class="viz-info-val">1 = Fake / Spoof &nbsp;|&nbsp; 0 = Genuine / Bona-fide</span></div>
+                    <div class="viz-info-item"><span class="viz-info-label">Ensemble Strategy</span><span class="viz-info-val">Both agree → consensus; disagree → higher confidence wins</span></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard">
+
+        <!-- Left Panel -->
+        <div class="panel panel-left">
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="upload" id="tabUpload">Upload Audio</button>
+                <button class="tab" data-tab="record" id="tabRecord">Record Mic</button>
+                <button class="tab" data-tab="dataset" id="tabDataset">Dataset Samples</button>
+            </div>
+
+            <!-- Tab: Upload -->
+            <div class="tab-content active" id="tab-upload">
+                <div class="dropzone" id="dropzone">
+                    <input type="file" id="fileInput" accept="audio/*" hidden />
+                    <div class="drop-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <p class="drop-primary">Drag &amp; drop WAV audio file here, or click to browse</p>
+                    <p class="drop-secondary">Supports 16kHz mono WAV format (standard formats auto-resampled)</p>
+                    <p class="drop-filename" id="dropFilename"></p>
+                </div>
+            </div>
+
+            <!-- Tab: Record -->
+            <div class="tab-content" id="tab-record">
+                <div class="record-area">
+                    <button id="recordBtn" class="record-circle" type="button">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </button>
+                    <p id="recordStatus" class="record-status">Click to start recording</p>
+                    <div class="record-timer" id="recordTimer" style="display:none;">
+                        <span id="timerDisplay">0:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Dataset Samples -->
+            <div class="tab-content" id="tab-dataset">
+                <div class="samples-grid" id="allSamplesGrid">
+                    {% for s in genuine_samples %}
+                    <div class="sample-card" data-filename="{{ s.file }}" data-label="genuine" data-speaker="{{ s.speaker }}" id="sample-{{ s.file }}">
+                        <div class="sample-card-top">
+                            <div class="sample-info">
+                                <span class="sample-filename">{{ s.file }}</span>
+                                <span class="sample-speaker">{{ s.speaker }}</span>
+                            </div>
+                        </div>
+                        <div class="sample-audio-row">
+                            <audio controls preload="none" src="/dataset/{{ s.file }}"></audio>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for s in forged_samples %}
+                    <div class="sample-card" data-filename="{{ s.file }}" data-label="forged" data-speaker="{{ s.speaker }}" id="sample-{{ s.file }}">
+                        <div class="sample-card-top">
+                            <div class="sample-info">
+                                <span class="sample-filename">{{ s.file }}</span>
+                                <span class="sample-speaker">{{ s.speaker }}</span>
+                            </div>
+                        </div>
+                        <div class="sample-audio-row">
+                            <audio controls preload="none" src="/dataset/{{ s.file }}"></audio>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Model Selector -->
+            <div class="model-section">
+                <p class="model-label">SELECT MODEL</p>
+                <div class="model-cards">
+                    <div class="model-card active" data-model="both">
+                        <div class="model-card-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                        </div>
+                        <div class="model-card-text">
+                            <span class="model-name">Both Models</span>
+                            <span class="model-sub">Compare Results</span>
+                        </div>
+                    </div>
+                    <div class="model-card" data-model="cnn_lstm">
+                        <div class="model-card-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                        </div>
+                        <div class="model-card-text">
+                            <span class="model-name">CNN + LSTM</span>
+                            <span class="model-sub">Deep Learning</span>
+                        </div>
+                    </div>
+                    <div class="model-card" data-model="xgboost">
+                        <div class="model-card-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                        <div class="model-card-text">
+                            <span class="model-name">GFCC + XGBoost</span>
+                            <span class="model-sub">Traditional ML</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analyze Button -->
+            <button id="analyzeBtn" class="analyze-btn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span id="analyzeBtnLabel">Analyze — Both Models</span>
+            </button>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="panel panel-right">
+            <h2 class="results-title">Detection Results</h2>
+
+            <!-- Empty State -->
+            <div class="results-empty" id="resultsEmpty">
+                <div class="empty-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke-width="1.5"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <p class="empty-title">No Audio Analyzed Yet</p>
+                <p class="empty-sub">Upload a file, record speech, or select a dataset sample, then click "Analyze" to see results.</p>
+            </div>
+
+            <!-- Result Cards -->
+            <div class="results-grid" id="resultsGrid" style="display:none;">
+
+                <!-- Audio Playback -->
+                <div class="audio-player-card" id="audioPlayer" style="display:none;">
+                    <div class="audio-player-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        <span>Audio Playback</span>
+                        <span class="audio-filename" id="audioFilenameLabel"></span>
+                    </div>
+                    <audio controls id="resultAudio" src="" style="width:100%;"></audio>
+                </div>
+
+                <!-- Model Comparison Header -->
+                <div class="comparison-header" id="comparisonHeader" style="display:none;">
+                    <h3>Model Comparison</h3>
+                    <p class="comparison-sub" id="comparisonSub">Side-by-side analysis from both models</p>
+                </div>
+
+                <!-- Two-column comparison -->
+                <div class="comparison-grid" id="comparisonGrid" style="display:none;">
+                    <!-- CNN-LSTM Card -->
+                    <div class="result-card" id="cardCnn">
+                        <div class="result-card-header">
+                            <span class="result-model-name">CNN‑LSTM</span>
+                            <span class="result-badge" id="badgeCnn">—</span>
+                        </div>
+                        <div class="result-verdict" id="verdictCnn">—</div>
+                        <div class="result-confidence" id="confCnn"></div>
+                        <div class="result-desc" id="descCnn">Awaiting prediction</div>
+                    </div>
+
+                    <!-- XGBoost Card -->
+                    <div class="result-card" id="cardXgboost">
+                        <div class="result-card-header">
+                            <span class="result-model-name">GFCC + XGBoost</span>
+                            <span class="result-badge" id="badgeXgboost">—</span>
+                        </div>
+                        <div class="result-verdict" id="verdictXgboost">—</div>
+                        <div class="result-confidence" id="confXgboost"></div>
+                        <div class="result-desc" id="descXgboost">Awaiting prediction</div>
+                    </div>
+                </div>
+
+                <!-- Consensus / Final Verdict -->
+                <div class="result-card result-card-full" id="cardConsensus">
+                    <div class="result-card-header">
+                        <span class="result-model-name">Final Verdict</span>
+                    </div>
+                    <div class="result-verdict" id="verdictConsensus">—</div>
+                    <div class="result-desc" id="descConsensus">Combined model agreement</div>
+                </div>
+
+                <!-- Metrics Section -->
+                <div class="metrics-section" id="metricsSection" style="display:none;">
+                    <h3 class="metrics-title">Model Performance Metrics</h3>
+                    <div class="metrics-grid">
+                        <!-- CNN Metrics -->
+                        <div class="metrics-card" id="metricsCnn" style="display:none;">
+                            <h4>CNN‑LSTM Metrics</h4>
+                            <div class="metrics-bars" id="metricsCnnBars"></div>
+                            <div class="confusion-wrap">
+                                <img id="confusionCnnImg" src="" alt="CNN-LSTM Confusion Matrix" />
+                            </div>
+                        </div>
+                        <!-- XGBoost Metrics -->
+                        <div class="metrics-card" id="metricsXgboost" style="display:none;">
+                            <h4>GFCC + XGBoost Metrics</h4>
+                            <div class="metrics-bars" id="metricsXgboostBars"></div>
+                            <div class="confusion-wrap">
+                                <img id="confusionXgboostImg" src="" alt="XGBoost Confusion Matrix" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+    // ── Viz page toggle ────────────────────────────────────────
+    const vizPage   = document.getElementById('vizPage');
+    const openViz   = document.getElementById('openVizBtn');
+    const closeViz  = document.getElementById('closeVizBtn');
+
+    openViz.addEventListener('click', () => {
+        vizPage.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        renderCompareChart();
+    });
+    closeViz.addEventListener('click', () => {
+        vizPage.style.display = 'none';
+        document.body.style.overflow = '';
+    });
+
+    // ── Head-to-head grouped bar chart (pure HTML/CSS) ─────────
+    function renderCompareChart() {
+        const container = document.getElementById('compareChart');
+        if (container.dataset.rendered) return;
+        container.dataset.rendered = '1';
+
+        const metrics = [
+            { label: 'Accuracy',  xgb: 93.5, cnn: 60.0 },
+            { label: 'Precision', xgb: 94.8, cnn: 67.2 },
+            { label: 'Recall',    xgb: 92.0, cnn: 39.0 },
+            { label: 'F1 Score',  xgb: 93.4, cnn: 49.4 },
+        ];
+        container.innerHTML = metrics.map(m => `
+            <div class="viz-cmp-group">
+                <div class="viz-cmp-label">${m.label}</div>
+                <div class="viz-cmp-bars">
+                    <div class="viz-cmp-bar-wrap">
+                        <div class="viz-cmp-bar xgb-bar" style="width:${m.xgb}%"></div>
+                        <span class="viz-cmp-pct">${m.xgb}%</span>
+                    </div>
+                    <div class="viz-cmp-bar-wrap">
+                        <div class="viz-cmp-bar cnn-bar" style="width:${m.cnn}%"></div>
+                        <span class="viz-cmp-pct">${m.cnn}%</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    </script>
+</body>
+</html>
