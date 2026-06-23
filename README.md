@@ -86,30 +86,18 @@ All scripts provide `--help` for detailed arguments.
 
 ## 📈 Results
 
-| Model | Accuracy | Precision | Recall | F1‑Score |
-|-------|----------|-----------|--------|----------|
-| CNN‑based (baseline) | 86.3% | 84.9% | 87.1% | 86.0% |
-| X‑GBoost | 79.5% | 78.0% | 80.2% | 79.1% |
+| Feature | CNN-LSTM | GFCC-XGBoost |
+|--------|----------|--------------|
+| Model Type | Deep Learning | Traditional Machine Learning |
+| Input Features | Mel-Spectrogram | GFCC Features |
+| Training Time | Higher | Lower |
+| Computational Cost | High | Moderate |
+| Explainability | Low | High |
+| Accuracy | 60.0% | 93.5% |
+| Recall | 39.0% | 92.0% |
+| F1-Score | 49.4% | 93.4% |
+| MCC | 0.21 | 0.87 |
 
 Feel free to contribute new models and report benchmark improvements!
 
 ---
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-- Opening issues
-- Submitting pull requests
-- Code style (PEP‑8, black formatting)
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📧 Contact
-
-For questions or collaboration inquiries, open an issue or reach out to **aadhya@example.com**.
