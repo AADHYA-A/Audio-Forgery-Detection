@@ -1,6 +1,5 @@
 # Audio Forgery Detection
 
-![Project Banner](https://raw.githubusercontent.com/yourusername/Audio_Forgery_Detection/main/assets/banner.png)
 
 ## Overview
 
